@@ -211,6 +211,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           if (savedProfile) {
             dispatch({ type: 'SET_PROFILE', payload: JSON.parse(savedProfile) });
           }
+          dispatch({ type: 'SET_LOADING', payload: false });
         }
       } catch (error) {
         console.error('Supabase initialization failed:', error);
