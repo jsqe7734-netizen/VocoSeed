@@ -1,6 +1,6 @@
 import { cn } from '../utils/helpers';
 import type { SearchResult } from '../data/types';
-import { FileText, BookOpen, ShoppingBag, BarChart3, Check, ExternalLink } from 'lucide-react';
+import { FileText, BookOpen, ShoppingBag, BarChart3, Check } from 'lucide-react';
 
 interface SearchResultCardProps {
   result: SearchResult;

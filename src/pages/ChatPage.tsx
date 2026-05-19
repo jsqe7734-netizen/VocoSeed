@@ -449,14 +449,14 @@ export default function ChatPage() {
       await baiduSpeechRecognition.start({
         onInterim: (text) => setInputValue(text),
         onFinal: (text) => setInputValue(text),
-        onError: (error) => setIsRecording(false),
+        onError: () => setIsRecording(false),
         onStatusChange: (status) => setIsRecording(status === 'listening'),
       });
     } else if (speechSupported) {
       speechRecognition.start({
         onInterim: (text) => setInputValue(text),
         onFinal: (text) => setInputValue(text),
-        onError: (error) => setIsRecording(false),
+        onError: () => setIsRecording(false),
         onStatusChange: (status) => setIsRecording(status === 'listening'),
       });
     } else {
