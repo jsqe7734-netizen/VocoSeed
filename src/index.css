@@ -1,0 +1,325 @@
+/* System fonts fallback - no external dependencies */
+@import "tailwindcss";
+
+@theme {
+  /* 暖米白温暖主题配色 */
+  --color-primary: #F59E0B;
+  --color-primary-light: #FBBF24;
+  --color-primary-dark: #D97706;
+  --color-secondary: #F97316;
+  --color-secondary-light: #FB923C;
+  --color-accent: #EC4899;
+  --color-accent-light: #F472B6;
+
+  /* 暖白背景色系 */
+  --color-background: #FDF7F0;
+  --color-background-warm: #FAF3EB;
+  --color-surface: rgba(255, 248, 240, 0.7);
+  --color-surface-solid: #FFF8F0;
+  --color-surface-light: rgba(255, 251, 247, 0.85);
+  --color-border: #F5E6D3;
+  --color-border-light: #F0E4D7;
+
+  /* 文字色 */
+  --color-text-primary: #1C1917;
+  --color-text-secondary: #44403C;
+  --color-text-muted: #78716C;
+  --color-text-light: #A8A29E;
+
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --animate-pulse-ring: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-fade-in: fade-in 0.4s ease-out;
+  --animate-slide-up: slide-up 0.4s ease-out;
+  --animate-typing: typing 1.5s ease-in-out infinite;
+  --animate-wave: wave 1.2s linear infinite;
+  --animate-glow: glow 3s ease-in-out infinite;
+  --animate-breathe: breathe 4s ease-in-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 0.8; box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+  50% { transform: scale(1.12); opacity: 0.4; box-shadow: 0 0 25px rgba(249, 115, 22, 0.3); }
+  100% { transform: scale(1); opacity: 0.8; box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+}
+
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes slide-up {
+  0% { opacity: 0; transform: translateY(16px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes wave {
+  0%, 100% { transform: scaleY(0.5); }
+  50% { transform: scaleY(1); }
+}
+
+@keyframes glow {
+  0% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.2); }
+  50% { box-shadow: 0 0 25px rgba(249, 115, 22, 0.3); }
+  100% { box-shadow: 0 0 15px rgba(236, 72, 153, 0.2); }
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+@keyframes typing {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  min-height: 100dvh;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* 暖色渐变文字 - 琥珀到玫瑰 */
+.gradient-text {
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  background-image: linear-gradient(135deg, #F59E0B 0%, #F97316 50%, #EC4899 100%);
+}
+
+.gradient-text-warm {
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  background-image: linear-gradient(135deg, #FBBF24 0%, #F59E0B 50%, #F97316 100%);
+}
+
+.gradient-text-rose {
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  background-image: linear-gradient(135deg, #F97316 0%, #EC4899 50%, #F472B6 100%);
+}
+
+/* 渐变边框效果 */
+.gradient-border {
+  position: relative;
+  background: linear-gradient(var(--color-surface), var(--color-surface)) padding-box,
+              linear-gradient(135deg, #F59E0B, #F97316, #EC4899) border-box;
+  border: 2px solid transparent;
+}
+
+/* 毛玻璃效果 - 暖色版本 */
+.glass {
+  background-color: rgba(255, 248, 240, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.glass-light {
+  background-color: rgba(255, 251, 247, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border-light);
+}
+
+.glass-card {
+  background: var(--color-surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+}
+
+/* 暖色发光效果 */
+.glow {
+  box-shadow: 0 8px 20px rgba(139, 69, 19, 0.08), 0 2px 8px rgba(245, 158, 11, 0.06);
+}
+
+.glow-sm {
+  box-shadow: 0 4px 12px rgba(139, 69, 19, 0.06);
+}
+
+.glow-primary {
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.2);
+}
+
+.glow-rose {
+  box-shadow: 0 8px 24px rgba(236, 72, 153, 0.15);
+}
+
+/* Scrollbar - 暖色版本 */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-text-light);
+}
+
+/* Animations */
+.animate-pulse-ring {
+  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, rgba(255, 248, 240, 0.6) 25%, rgba(255, 251, 247, 0.8) 50%, rgba(255, 248, 240, 0.6) 75%);
+  background-size: 200% 100%;
+  animation: breathe 3s ease-in-out infinite;
+}
+
+.animate-sound-wave {
+  animation: sound-wave 0.5s ease-in-out infinite;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s ease-out;
+}
+
+.animate-breathe {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes sound-wave {
+  0%, 100% { height: 8px; }
+  50% { height: 28px; }
+}
+
+@keyframes scale-in {
+  0% { opacity: 0; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Focus states - 暖色版本 */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-primary), 0 0 0 4px var(--color-background);
+}
+
+/* Touch feedback */
+.touch-scale {
+  transition-transform: 150ms ease-out;
+}
+
+.touch-scale:active {
+  transform: scale(0.96);
+}
+
+/* 卡片基础样式 */
+.card {
+  background: #FFF8F0;
+  border: 1px solid #F0E4D7;
+  border-radius: 24px;
+  box-shadow: 0 2px 8px rgba(139, 69, 19, 0.05);
+}
+
+.card-hover {
+  transition: all 0.2s ease-out;
+}
+
+.card-hover:hover {
+  border-color: #E5D4C0;
+  box-shadow: 0 4px 16px rgba(139, 69, 19, 0.1);
+}
+
+/* 暖色按钮 */
+.btn-primary {
+  background: linear-gradient(135deg, #F59E0B 0%, #F97316 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  transition: all 0.2s ease-out;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+/* 状态标签 */
+.status-amber {
+  background: rgba(245, 158, 11, 0.1);
+  color: #D97706;
+}
+
+.status-orange {
+  background: rgba(249, 115, 22, 0.1);
+  color: #EA580C;
+}
+
+.status-rose {
+  background: rgba(236, 72, 153, 0.1);
+  color: #DB2777;
+}
+
+/* 进度条 - 暖色渐变 */
+.progress-warm {
+  background: linear-gradient(90deg, #F59E0B 0%, #F97316 50%, #EC4899 100%);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+}
+
+/* 文字颜色 */
+.text-warm-primary {
+  color: var(--color-text-primary);
+}
+
+.text-warm-secondary {
+  color: var(--color-text-secondary);
+}
+
+.text-warm-muted {
+  color: var(--color-text-muted);
+}
