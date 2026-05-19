@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import HomePage from './pages/HomePage';
 import ChatPage from './pages/ChatPage';
@@ -22,7 +22,7 @@ function App() {
   };
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <AppProvider>
         {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
         <Routes>
@@ -36,7 +36,7 @@ function App() {
           <Route path="/generate" element={<GeneratePage />} />
         </Routes>
       </AppProvider>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
