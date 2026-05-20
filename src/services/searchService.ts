@@ -79,35 +79,52 @@ class SearchService {
 
     let results: SearchResult[] = [];
     try {
-      // 尝试使用 Bing 搜索获取真实数据
-      const response = await fetch(`/bing-search/search?q=${encodeURIComponent(query)}`);
-      if (response.ok) {
-        const bingHtml = await response.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(bingHtml, 'text/html');
-        const items = doc.querySelectorAll('.b_algo');
-        
-        items.forEach((item, index) => {
-          if (results.length >= limit) return;
-          const titleEl = item.querySelector('h2 a');
-          const snippetEl = item.querySelector('.b_caption p') || item.querySelector('.b_algoSlug') || item.querySelector('.b_snippet');
-          
-          if (titleEl && snippetEl) {
-            const rawHref = titleEl.getAttribute('href') || '';
-            const url = rawHref.startsWith('http') ? rawHref : undefined;
-            
-            results.push({
-              id: `bing-${index}-${Date.now()}`,
-              type: ['paper', 'patent', 'product', 'report'][index % 4] as any,
-              title: titleEl.textContent || '无标题',
-              source: '必应搜索',
-              summary: snippetEl.textContent || '无摘要',
-              url: url,
-              cited: Math.floor(Math.random() * 500),
-              year: new Date().getFullYear(),
+      const tavilyApiKey = import.meta.env.VITE_TAVILY_API_KEY;
+      if (tavilyApiKey) {
+        // 使用 Tavily API 获取真实数据
+        const response = await fetch('https://api.tavily.com/search', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            api_key: tavilyApiKey,
+            query: query,
+            search_depth: 'basic',
+            max_results: limit,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.results && Array.isArray(data.results)) {
+            results = data.results.map((item: any, index: number) => {
+              // 尝试从 URL 提取来源名称
+              let source = 'Tavily Search';
+              try {
+                if (item.url) {
+                  const urlObj = new URL(item.url);
+                  source = urlObj.hostname.replace('www.', '');
+                }
+              } catch (e) {}
+
+              return {
+                id: `tavily-${index}-${Date.now()}`,
+                type: ['paper', 'patent', 'product', 'report'][index % 4] as any,
+                title: item.title || '无标题',
+                source: source,
+                summary: item.content || '无摘要',
+                url: item.url,
+                cited: Math.floor(Math.random() * 500),
+                year: new Date().getFullYear(),
+              };
             });
           }
-        });
+        } else {
+          console.error('Tavily API returned error status:', response.status);
+        }
+      } else {
+        console.warn('VITE_TAVILY_API_KEY not configured, falling back to mock data.');
       }
     } catch (e) {
       console.error("Search API failed", e);
