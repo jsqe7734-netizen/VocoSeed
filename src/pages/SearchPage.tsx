@@ -34,17 +34,14 @@ export default function SearchPage() {
     setUsedMockData(false);
 
     try {
-      // 生成搜索关键词
       const queries = generateSearchQueries(
         currentIdea.transcript,
         currentIdea.keywords
       );
 
-      // 使用第一个查询进行搜索
       const mainQuery = queries[0] || currentIdea.transcript.slice(0, 50);
       setSearchQuery(mainQuery);
 
-      // 尝试使用真实搜索
       const response = await searchService.search({
         query: mainQuery,
         types: ['paper', 'patent', 'product', 'report'],
@@ -53,8 +50,8 @@ export default function SearchPage() {
 
       if (response.results.length > 0) {
         setSearchResults(response.results);
+        setUsedMockData(response.usedMockData || false);
       } else {
-        // 如果没有真实结果，使用模拟数据
         setSearchResults([]);
         setUsedMockData(true);
       }

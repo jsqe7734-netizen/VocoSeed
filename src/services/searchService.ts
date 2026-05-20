@@ -14,6 +14,7 @@ export interface SearchResponse {
   results: SearchResult[];
   total: number;
   hasMore: boolean;
+  usedMockData?: boolean;
 }
 
 // 根据关键词过滤或生成模拟数据
@@ -78,11 +79,18 @@ class SearchService {
     const { query, types = ['paper', 'patent', 'product', 'report'], limit = 10 } = options;
 
     let results: SearchResult[] = [];
+    let usedMockData = false;
+    
     try {
       const tavilyApiKey = import.meta.env.VITE_TAVILY_API_KEY;
-      if (tavilyApiKey) {
-        // 使用 Tavily API 获取真实数据
-        const response = await fetch('https://api.tavily.com/search', {
+      
+      if (!tavilyApiKey) {
+        console.warn('VITE_TAVILY_API_KEY not configured, falling back to mock data.');
+        usedMockData = true;
+      } else {
+        console.log('Tavily API key found, attempting to fetch real search results...');
+        
+        const response = await fetch('/tavily-search/search', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -97,9 +105,10 @@ class SearchService {
 
         if (response.ok) {
           const data = await response.json();
-          if (data.results && Array.isArray(data.results)) {
+          console.log('Tavily API response received:', data);
+          
+          if (data.results && Array.isArray(data.results) && data.results.length > 0) {
             results = data.results.map((item: any, index: number) => {
-              // 尝试从 URL 提取来源名称
               let source = 'Tavily Search';
               try {
                 if (item.url) {
@@ -119,23 +128,25 @@ class SearchService {
                 year: new Date().getFullYear(),
               };
             });
+          } else {
+            console.warn('Tavily API returned empty results, falling back to mock data.');
+            usedMockData = true;
           }
         } else {
-          console.error('Tavily API returned error status:', response.status);
+          const errorText = await response.text();
+          console.error('Tavily API returned error:', response.status, errorText);
+          usedMockData = true;
         }
-      } else {
-        console.warn('VITE_TAVILY_API_KEY not configured, falling back to mock data.');
       }
     } catch (e) {
-      console.error("Search API failed", e);
+      console.error("Search API failed:", e);
+      usedMockData = true;
     }
 
-    // 如果获取失败或者没有结果，使用模拟数据
-    if (results.length === 0) {
+    if (usedMockData || results.length === 0) {
       results = generateResultsForQuery(query, limit * 2);
     }
 
-    // 按类型过滤
     if (types.length > 0 && types.length < 4) {
       results = results.filter(r => types.includes(r.type));
     }
@@ -144,6 +155,7 @@ class SearchService {
       results: results.slice(0, limit),
       total: results.length,
       hasMore: results.length >= limit,
+      usedMockData: usedMockData,
     };
   }
 }

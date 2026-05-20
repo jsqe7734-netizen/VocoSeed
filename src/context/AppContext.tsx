@@ -242,12 +242,69 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const { data: subscription } = authService.onAuthStateChange(async (session) => {
       if (session) {
         dispatch({ type: 'SET_SUPABASE_CONNECTED', payload: true });
-        // 用户登录，获取数据
         try {
-          const ideas = await ideaService.getAllIdeas();
-          const stats = await statsService.getUserStats();
-          
-          dispatch({ type: 'SET_IDEAS', payload: ideas });
+          const [dbIdeas, stats] = await Promise.all([
+            ideaService.getAllIdeas(),
+            statsService.getUserStats(),
+          ]);
+
+          // 检查 localStorage 中是否有未同步的数据
+          const savedIdeas = localStorage.getItem('vocoseed_ideas');
+          let ideasToUse = dbIdeas;
+
+          if (savedIdeas && dbIdeas.length === 0) {
+            // 如果数据库为空但本地存储有数据，尝试同步到数据库
+            try {
+              const localIdeas = JSON.parse(savedIdeas);
+              console.log('Found local ideas, syncing to database...');
+
+              for (const localIdea of localIdeas) {
+                // 创建创意
+                const newIdeaId = await ideaService.createIdea({
+                  title: localIdea.title,
+                  transcript: localIdea.transcript || '',
+                  status: localIdea.status,
+                  progress: localIdea.progress,
+                  keywords: localIdea.keywords || [],
+                });
+
+                // 添加消息
+                if (localIdea.messages && localIdea.messages.length > 0) {
+                  const messagesToAdd = localIdea.messages.map((msg: any) => ({
+                    role: msg.role,
+                    content: msg.content,
+                    type: msg.type || 'text',
+                    imageUrl: msg.imageUrl,
+                  }));
+                  await ideaService.addMessages(newIdeaId, messagesToAdd);
+                }
+
+                // 添加搜索结果
+                if (localIdea.searchResults && localIdea.searchResults.length > 0) {
+                  const resultsToAdd = localIdea.searchResults.map((result: any) => ({
+                    type: result.type,
+                    title: result.title,
+                    source: result.source,
+                    summary: result.summary,
+                    url: result.url,
+                    cited: result.cited,
+                    year: result.year,
+                  }));
+                  await ideaService.addSearchResults(newIdeaId, resultsToAdd);
+                }
+              }
+
+              // 同步完成后，从数据库重新获取
+              ideasToUse = await ideaService.getAllIdeas();
+              localStorage.removeItem('vocoseed_ideas');
+              console.log('Local ideas synced to database successfully');
+            } catch (syncError) {
+              console.error('Failed to sync local ideas to database:', syncError);
+              ideasToUse = dbIdeas.length > 0 ? dbIdeas : JSON.parse(savedIdeas);
+            }
+          }
+
+          dispatch({ type: 'SET_IDEAS', payload: ideasToUse });
           dispatch({
             type: 'SET_PROFILE',
             payload: {

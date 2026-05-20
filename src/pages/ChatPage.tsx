@@ -219,44 +219,43 @@ export default function ChatPage() {
     localStorage.setItem('vocoseed_auto_tts', String(newValue));
   };
 
-  // AI 持续回复功能 - 修复版
+  // AI 持续回复功能
   const startAILooping = async () => {
     if (isTyping || isAILooping) return;
     
     setIsAILooping(true);
     setLoopCount(0);
-    stopLoopRef.current = false; // 重置停止标志
+    stopLoopRef.current = false;
     
-    // AI 引导问题列表（固定3条）
     const aiPrompts = [
       "让我进一步了解你的想法。你能具体描述一下这个创意的核心价值吗？",
       "很好！关于这个创意，你考虑过目标用户群体吗？",
       "非常棒！我还想知道，这个创意相比现有方案有什么优势？",
     ];
     
+    const loopCountRef = { current: 0 };
+    
     const loop = async () => {
-      // 每次循环开始前检查是否应该停止（使用同步 ref 检查）
       if (stopLoopRef.current) {
         setIsAILooping(false);
         setLoopCount(0);
         return;
       }
       
-      // 达到3条后自动停止
-      if (loopCount >= 3) {
+      if (loopCountRef.current >= aiPrompts.length) {
         setIsAILooping(false);
         setLoopCount(0);
         stopLoopRef.current = true;
         return;
       }
       
-      const prompt = aiPrompts[loopCount];
-      setLoopCount(prev => prev + 1);
+      const prompt = aiPrompts[loopCountRef.current];
+      loopCountRef.current += 1;
+      setLoopCount(loopCountRef.current);
       
-      // 添加 AI 消息
-      const aiMessage = createAiMessage(prompt);
-      const idea = state.currentIdea || state.ideas[0];
+      const idea = stateRef.current.currentIdea || stateRef.current.ideas[0];
       if (idea) {
+        const aiMessage = createAiMessage(prompt);
         dispatch({
           type: 'ADD_MESSAGE',
           payload: { ideaId: idea.id, message: aiMessage },
@@ -271,7 +270,6 @@ export default function ChatPage() {
         setShowQuickReplies(true);
       }
       
-      // 等待一段时间后继续下一条（让用户有时间查看）
       await new Promise(resolve => {
         if (stopLoopRef.current) {
           resolve(null);
@@ -280,14 +278,12 @@ export default function ChatPage() {
         setTimeout(resolve, 2000);
       });
       
-      // 继续下一次循环前再次检查停止标志
       if (stopLoopRef.current) {
         setIsAILooping(false);
         setLoopCount(0);
         return;
       }
       
-      // 继续下一次循环
       await loop();
     };
     
