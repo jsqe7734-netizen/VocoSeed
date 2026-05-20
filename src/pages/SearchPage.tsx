@@ -73,13 +73,9 @@ export default function SearchPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIdea?.id]);
 
-  // 过滤结果
+  // 过滤结果 - 只按类型过滤，不按搜索词过滤（搜索词已用于搜索）
   const filteredResults = searchResults.filter(result => {
-    const matchesFilter = filter === 'all' || result.type === filter;
-    const matchesSearch = !searchQuery || 
-      result.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      result.summary.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesFilter && matchesSearch;
+    return filter === 'all' || result.type === filter;
   });
 
   const toggleSelect = (id: string) => {

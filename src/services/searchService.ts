@@ -17,6 +17,35 @@ export interface SearchResponse {
   usedMockData?: boolean;
 }
 
+// 内容安全过滤函数 - 过滤负面/恶意内容
+function filterPositiveContent(results: SearchResult[]): SearchResult[] {
+  return results.filter(result => {
+    const allText = (result.title + ' ' + result.summary + ' ' + result.source).toLowerCase();
+    
+    // 检查是否包含恶意模式
+    const hasMaliciousPattern = 
+      allText.includes('anti-china') ||
+      allText.includes('anti-chinese') ||
+      allText.includes('dictatorship') ||
+      allText.includes('反动') ||
+      allText.includes('抹黑') ||
+      allText.includes('造谣') ||
+      allText.includes('诽谤') ||
+      allText.includes('攻击') ||
+      allText.includes('色情') ||
+      allText.includes('暴力') ||
+      allText.includes('恐怖') ||
+      allText.includes('血腥') ||
+      allText.includes('fuck') ||
+      allText.includes('shit') ||
+      allText.includes('bitch') ||
+      allText.includes('damn') ||
+      allText.includes('asshole');
+    
+    return !hasMaliciousPattern;
+  });
+}
+
 // 根据关键词过滤或生成模拟数据
 function generateResultsForQuery(query: string, limit: number): SearchResult[] {
   const queryLower = query.toLowerCase();
@@ -75,71 +104,180 @@ function generateResultsForQuery(query: string, limit: number): SearchResult[] {
 }
 
 class SearchService {
+  // 使用 GitHub API 搜索仓库
+  private async searchWithGitHub(query: string, limit: number): Promise<SearchResult[]> {
+    try {
+      console.log('Trying GitHub search...');
+      const encodedQuery = encodeURIComponent(query);
+      const response = await fetch(
+        `https://api.github.com/search/repositories?q=${encodedQuery}&per_page=${limit}`,
+        {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/vnd.github.v3+json',
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('GitHub API response received:', data);
+        
+        if (data.items && Array.isArray(data.items) && data.items.length > 0) {
+          return data.items.slice(0, limit).map((item: any, index: number) => ({
+            id: `github-${index}-${Date.now()}`,
+            type: 'product',
+            title: item.name || '无标题',
+            source: 'github.com',
+            summary: item.description || '无描述',
+            url: item.html_url,
+            cited: item.stargazers_count || Math.floor(Math.random() * 100),
+            year: item.created_at ? new Date(item.created_at).getFullYear() : new Date().getFullYear(),
+          }));
+        }
+      }
+    } catch (e) {
+      console.error('GitHub search failed:', e);
+    }
+    return [];
+  }
+
+  // 使用 NewsAPI (需要 API Key，作为备用)
+  private async searchWithNews(query: string, limit: number): Promise<SearchResult[]> {
+    const newsApiKey = import.meta.env.VITE_NEWS_API_KEY;
+    if (!newsApiKey) return [];
+    
+    try {
+      console.log('Trying NewsAPI search...');
+      const encodedQuery = encodeURIComponent(query);
+      const response = await fetch(
+        `https://newsapi.org/v2/everything?q=${encodedQuery}&pageSize=${limit}&apiKey=${newsApiKey}`,
+        {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('NewsAPI response received:', data);
+        
+        if (data.articles && Array.isArray(data.articles) && data.articles.length > 0) {
+          return data.articles.slice(0, limit).map((item: any, index: number) => ({
+            id: `news-${index}-${Date.now()}`,
+            type: 'report',
+            title: item.title || '无标题',
+            source: item.source?.name || 'NewsAPI',
+            summary: item.description || '无摘要',
+            url: item.url,
+            cited: Math.floor(Math.random() * 50),
+            year: new Date().getFullYear(),
+          }));
+        }
+      }
+    } catch (e) {
+      console.error('NewsAPI search failed:', e);
+    }
+    return [];
+  }
+
+  // 使用 Tavily 搜索 API
+  private async searchWithTavily(query: string, limit: number): Promise<SearchResult[]> {
+    const tavilyApiKey = import.meta.env.VITE_TAVILY_API_KEY;
+    if (!tavilyApiKey) return [];
+
+    try {
+      console.log('Trying Tavily search...');
+      const response = await fetch('https://api.tavily.com/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          api_key: tavilyApiKey,
+          query: query,
+          search_depth: 'basic',
+          max_results: limit,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Tavily API response received:', data);
+        
+        if (data.results && Array.isArray(data.results) && data.results.length > 0) {
+          return data.results.map((item: any, index: number) => {
+            let source = 'Tavily Search';
+            try {
+              if (item.url) {
+                const urlObj = new URL(item.url);
+                source = urlObj.hostname.replace('www.', '');
+              }
+            } catch (e) {}
+
+            return {
+              id: `tavily-${index}-${Date.now()}`,
+              type: ['paper', 'patent', 'product', 'report'][index % 4] as any,
+              title: item.title || '无标题',
+              source: source,
+              summary: item.content || '无摘要',
+              url: item.url,
+              cited: Math.floor(Math.random() * 500),
+              year: new Date().getFullYear(),
+            };
+          });
+        }
+      } else {
+        const errorText = await response.text();
+        console.error('Tavily API returned error:', response.status, errorText);
+      }
+    } catch (e) {
+      console.error('Tavily search failed:', e);
+    }
+    return [];
+  }
+
   async search(options: SearchOptions): Promise<SearchResponse> {
     const { query, types = ['paper', 'patent', 'product', 'report'], limit = 10 } = options;
 
     let results: SearchResult[] = [];
     let usedMockData = false;
+    let source: string = 'mock';
     
     try {
-      const tavilyApiKey = import.meta.env.VITE_TAVILY_API_KEY;
-      
-      if (!tavilyApiKey) {
-        console.warn('VITE_TAVILY_API_KEY not configured, falling back to mock data.');
-        usedMockData = true;
-      } else {
-        console.log('Tavily API key found, attempting to fetch real search results...');
-        
-        const response = await fetch('/tavily-search/search', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            api_key: tavilyApiKey,
-            query: query,
-            search_depth: 'basic',
-            max_results: limit,
-          }),
-        });
+      // 优先尝试 Tavily API
+      const tavilyResults = await this.searchWithTavily(query, Math.ceil(limit * 0.6));
+      if (tavilyResults.length > 0) {
+        results = [...results, ...tavilyResults];
+        source = 'tavily';
+      }
 
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Tavily API response received:', data);
-          
-          if (data.results && Array.isArray(data.results) && data.results.length > 0) {
-            results = data.results.map((item: any, index: number) => {
-              let source = 'Tavily Search';
-              try {
-                if (item.url) {
-                  const urlObj = new URL(item.url);
-                  source = urlObj.hostname.replace('www.', '');
-                }
-              } catch (e) {}
-
-              return {
-                id: `tavily-${index}-${Date.now()}`,
-                type: ['paper', 'patent', 'product', 'report'][index % 4] as any,
-                title: item.title || '无标题',
-                source: source,
-                summary: item.content || '无摘要',
-                url: item.url,
-                cited: Math.floor(Math.random() * 500),
-                year: new Date().getFullYear(),
-              };
-            });
-          } else {
-            console.warn('Tavily API returned empty results, falling back to mock data.');
-            usedMockData = true;
-          }
-        } else {
-          const errorText = await response.text();
-          console.error('Tavily API returned error:', response.status, errorText);
-          usedMockData = true;
+      // 补充搜索：GitHub（产品/项目类）
+      if (results.length < limit) {
+        const githubResults = await this.searchWithGitHub(query, limit - results.length);
+        if (githubResults.length > 0) {
+          results = [...results, ...githubResults];
+          source = source === 'mock' ? 'github' : `${source}+github`;
         }
       }
+
+      // 补充搜索：NewsAPI（新闻/报告类，需要 API Key）
+      if (results.length < limit) {
+        const newsResults = await this.searchWithNews(query, limit - results.length);
+        if (newsResults.length > 0) {
+          results = [...results, ...newsResults];
+          source = source === 'mock' ? 'newsapi' : `${source}+newsapi`;
+        }
+      }
+      
+      if (results.length === 0) {
+        console.warn('All search APIs failed, using mock data');
+        usedMockData = true;
+      }
     } catch (e) {
-      console.error("Search API failed:", e);
+      console.error("Search failed:", e);
       usedMockData = true;
     }
 
@@ -151,6 +289,15 @@ class SearchService {
       results = results.filter(r => types.includes(r.type));
     }
 
+    // 正能量过滤 - 移除敏感/负面内容
+    const beforeFilterCount = results.length;
+    results = filterPositiveContent(results);
+    if (beforeFilterCount > results.length) {
+      console.log(`Filtered out ${beforeFilterCount - results.length} negative results`);
+    }
+
+    console.log(`Search completed: ${results.length} results from ${source}`);
+    
     return {
       results: results.slice(0, limit),
       total: results.length,
