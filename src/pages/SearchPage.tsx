@@ -24,8 +24,8 @@ export default function SearchPage() {
 
   const currentIdea = state.currentIdea;
 
-  // 搜索功能
-  const performSearch = async () => {
+  // 搜索功能 - 支持用户自定义搜索关键词
+  const performSearch = async (customQuery?: string) => {
     if (!currentIdea) return;
 
     setIsSearching(true);
@@ -34,18 +34,24 @@ export default function SearchPage() {
     setUsedMockData(false);
 
     try {
-      const queries = generateSearchQueries(
-        currentIdea.transcript,
-        currentIdea.keywords
-      );
-
-      const mainQuery = queries[0] || currentIdea.transcript.slice(0, 50);
-      setSearchQuery(mainQuery);
+      // 如果用户没有输入自定义关键词，使用创意自动生成的关键词
+      let query = customQuery || searchQuery;
+      const isManualSearch = !!customQuery || (searchQuery && searchQuery.trim());
+      
+      if (!query) {
+        const queries = generateSearchQueries(
+          currentIdea.transcript,
+          currentIdea.keywords
+        );
+        query = queries[0] || currentIdea.transcript.slice(0, 50);
+        setSearchQuery(query);
+      }
 
       const response = await searchService.search({
-        query: mainQuery,
+        query,
         types: ['paper', 'patent', 'product', 'report'],
         limit: 10,
+        allowMockData: !isManualSearch, // 用户手动搜索时不使用模拟数据
       });
 
       if (response.results.length > 0) {
@@ -223,9 +229,17 @@ export default function SearchPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && performSearch()}
             placeholder="搜索关键词..."
-            className="w-full pl-11 pr-4 py-3 bg-surface border border-surface-light rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-colors placeholder-slate-500"
+            className="w-full pl-11 pr-14 py-3 bg-surface border border-surface-light rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-colors placeholder-slate-500"
           />
+          <button
+            onClick={() => searchQuery && performSearch(searchQuery)}
+            disabled={!searchQuery || isSearching}
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-primary hover:text-primary/80 disabled:text-slate-400 disabled:cursor-not-allowed transition-colors"
+          >
+            {isSearching ? <Loader2 size={16} className="animate-spin" /> : <Search size={18} />}
+          </button>
         </div>
       </div>
 

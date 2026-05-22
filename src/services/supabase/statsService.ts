@@ -25,7 +25,20 @@ export const statsService = {
       .eq('user_id', userData.user!.id)
       .single();
 
-    if (error) throw error;
+    // 如果没有记录，返回默认值
+    if (error || !data) {
+      console.warn('No usage_stats found, returning defaults:', error);
+      return {
+        recordings_this_month: 0,
+        recordings_limit: 10,
+        searches_today: 0,
+        searches_limit: 5,
+        total_ideas: 0,
+        total_conversations: 0,
+        streak: 1,
+      };
+    }
+
     return data;
   },
 
@@ -42,7 +55,10 @@ export const statsService = {
       .eq('user_id', userData.user!.id)
       .single();
 
-    if (error) throw error;
+    if (error || !data) {
+      console.warn('No usage_stats found, skipping recording count update:', error);
+      return;
+    }
 
     // 检查是否超限
     if (data.recordings_this_month >= data.recordings_limit) {
@@ -53,11 +69,11 @@ export const statsService = {
       .from('usage_stats')
       .update({
         recordings_this_month: data.recordings_this_month + 1,
-        total_ideas: data.total_ideas + 1,
+        total_ideas: (data.total_ideas || 0) + 1,
       })
       .eq('user_id', userData.user!.id);
 
-    if (updateError) throw updateError;
+    if (updateError) console.error('Failed to update recording count:', updateError);
   },
 
   // 增加搜索计数
@@ -73,7 +89,10 @@ export const statsService = {
       .eq('user_id', userData.user!.id)
       .single();
 
-    if (error) throw error;
+    if (error || !data) {
+      console.warn('No usage_stats found, skipping search count update:', error);
+      return;
+    }
 
     // 检查是否超限
     if (data.searches_today >= data.searches_limit) {
@@ -87,7 +106,7 @@ export const statsService = {
       })
       .eq('user_id', userData.user!.id);
 
-    if (updateError) throw updateError;
+    if (updateError) console.error('Failed to update search count:', updateError);
   },
 
   // 增加对话计数
@@ -97,13 +116,36 @@ export const statsService = {
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError) throw userError;
 
-    const { error } = await supabase.rpc('increment_conversation_count', {
+    // 先尝试 RPC
+    const { error: rpcError } = await supabase.rpc('increment_conversation_count', {
       user_id_param: userData.user!.id,
     });
 
-    if (error) {
-      // 如果 RPC 不存在，尝试直接更新
-      console.warn('RPC increment_conversation_count not available:', error);
+    if (rpcError) {
+      // RPC 不存在，直接更新
+      console.warn('RPC increment_conversation_count not available, using direct update:', rpcError);
+      
+      const { data, error: selectError } = await supabase
+        .from('usage_stats')
+        .select('total_conversations')
+        .eq('user_id', userData.user!.id)
+        .single();
+
+      if (selectError) {
+        console.error('Failed to get conversation count:', selectError);
+        return;
+      }
+
+      const { error: updateError } = await supabase
+        .from('usage_stats')
+        .update({
+          total_conversations: (data?.total_conversations || 0) + 1,
+        })
+        .eq('user_id', userData.user!.id);
+
+      if (updateError) {
+        console.error('Failed to update conversation count:', updateError);
+      }
     }
   },
 

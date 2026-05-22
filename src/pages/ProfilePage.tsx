@@ -17,6 +17,7 @@ export default function ProfilePage() {
   const [userAvatar, setUserAvatar] = useState(
     state.profile.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=vocoseed'
   );
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // 未登录状态重定向到登录页
   useEffect(() => {
@@ -24,6 +25,46 @@ export default function ProfilePage() {
       navigate('/auth');
     }
   }, [isLoggedIn, navigate]);
+
+  // 进入页面时刷新统计数据
+  useEffect(() => {
+    const refreshStats = async () => {
+      if (!isLoggedIn) return;
+
+      setIsRefreshing(true);
+      try {
+        // 动态导入 statsService
+        const { statsService } = await import('../services/supabase/statsService');
+        const stats = await statsService.getUserStats();
+        const ideas = await import('../services/supabase/ideaService').then(m => m.ideaService.getAllIdeas());
+
+        dispatch({
+          type: 'SET_PROFILE',
+          payload: {
+            ...state.profile,
+            usage: {
+              recordingsThisMonth: stats.recordings_this_month,
+              recordingsLimit: stats.recordings_limit,
+              searchesToday: stats.searches_today,
+              searchesLimit: stats.searches_limit,
+            },
+            stats: {
+              totalIdeas: stats.total_ideas,
+              totalConversations: stats.total_conversations,
+              streak: stats.streak,
+            },
+          },
+        });
+        dispatch({ type: 'SET_IDEAS', payload: ideas });
+      } catch (err) {
+        console.error('Failed to refresh stats:', err);
+      } finally {
+        setIsRefreshing(false);
+      }
+    };
+
+    refreshStats();
+  }, []);
 
   if (!isLoggedIn) {
     return null;
@@ -156,7 +197,7 @@ export default function ProfilePage() {
               <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-2">
                 <Sparkles size={16} className="text-primary" />
               </div>
-              <p className="text-lg font-semibold">{state.profile.stats.totalIdeas}</p>
+              <p className="text-lg font-semibold">{state.ideas.length}</p>
               <p className="text-xs text-slate-500">创意</p>
             </div>
             <div className="bg-surface border border-surface-light rounded-xl p-3 text-center">

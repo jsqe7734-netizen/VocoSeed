@@ -165,10 +165,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           
           // 获取用户数据
           try {
-            const [ideas, stats] = await Promise.all([
+            const [userData, ideas, stats] = await Promise.all([
+              authService.getCurrentUser(),
               ideaService.getAllIdeas(),
               statsService.getUserStats(),
             ]);
+
+            const userNickname = userData?.user?.user_metadata?.nickname || '';
 
             dispatch({ type: 'SET_IDEAS', payload: ideas });
             
@@ -178,6 +181,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
               payload: {
                 ...initialProfile,
                 isLoggedIn: true,
+                email: userData?.user?.email || '',
+                nickname: userNickname,
                 usage: {
                   recordingsThisMonth: stats.recordings_this_month,
                   recordingsLimit: stats.recordings_limit,
@@ -243,10 +248,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (session) {
         dispatch({ type: 'SET_SUPABASE_CONNECTED', payload: true });
         try {
-          const [dbIdeas, stats] = await Promise.all([
+          const [userData, dbIdeas, stats] = await Promise.all([
+            authService.getCurrentUser(),
             ideaService.getAllIdeas(),
             statsService.getUserStats(),
           ]);
+
+          const userNickname = userData?.user?.user_metadata?.nickname || '';
 
           // 检查 localStorage 中是否有未同步的数据
           const savedIdeas = localStorage.getItem('vocoseed_ideas');
@@ -310,6 +318,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             payload: {
               ...initialProfile,
               isLoggedIn: true,
+              email: userData?.user?.email || '',
+              nickname: userNickname,
               usage: {
                 recordingsThisMonth: stats.recordings_this_month,
                 recordingsLimit: stats.recordings_limit,

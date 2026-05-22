@@ -9,16 +9,28 @@ import AuthPage from './pages/AuthPage';
 import SettingsPage from './pages/SettingsPage';
 import GeneratePage from './pages/GeneratePage';
 import Onboarding from './components/Onboarding';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 function App() {
-  const [showOnboarding] = useState(() => {
+  const [showOnboarding, setShowOnboarding] = useState(() => {
     const hasCompletedOnboarding = localStorage.getItem('vocoseed_onboarding_complete');
     return !hasCompletedOnboarding;
   });
 
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const hasCompletedOnboarding = localStorage.getItem('vocoseed_onboarding_complete');
+      if (hasCompletedOnboarding) {
+        setShowOnboarding(false);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   const handleOnboardingComplete = () => {
-    // This is handled by the Onboarding component setting localStorage
+    setShowOnboarding(false);
   };
 
   return (

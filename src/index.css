@@ -1,5 +1,6 @@
 /* System fonts fallback - no external dependencies */
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;600;700&display=swap');
 
 @theme {
   /* 暖米白温暖主题配色 */

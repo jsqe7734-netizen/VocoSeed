@@ -151,6 +151,9 @@ export default function AuthPage() {
     try {
       // 调用 Supabase 登录 API
       await authService.signIn(email, password);
+      // 登录后获取完整的用户信息
+      const { data: userData } = await authService.getCurrentUser();
+      const userNickname = userData?.user?.user_metadata?.nickname || email.split('@')[0];
 
       dispatch({
         type: 'SET_PROFILE',
@@ -158,7 +161,7 @@ export default function AuthPage() {
           ...state.profile,
           isLoggedIn: true,
           email: email,
-          nickname: nickname || email.split('@')[0],
+          nickname: userNickname,
           memberType: 'free',
         },
       });
